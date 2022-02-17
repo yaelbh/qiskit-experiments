@@ -360,10 +360,25 @@ class BaseExperiment(ABC, StoreInitArgs):
         # generation
 
     def _transpiled_circuits(self) -> List[QuantumCircuit]:
-        """Return transpiled experiment circuits"""
+        """Return a list of experiment circuits, transpiled.
+
+        This function can be overridden to define custom transpilation.
+        """
         transpile_opts = copy.copy(self.transpile_options.__dict__)
         transpile_opts["initial_layout"] = list(self.physical_qubits)
-        return transpile(self.circuits(), self.backend, **transpile_opts)
+        transpiled = transpile(self.circuits(), self.backend, **transpile_opts)
+
+        # TODO remove this deprecation after 0.3.0 release
+        if hasattr(self, "_postprocess_transpiled_circuits"):
+            warnings.warn(
+                "`BaseExperiment._postprocess_transpiled_circuits` is deprecated as of "
+                "qiskit-experiments 0.3.0 and will be removed in the 0.4.0 release."
+                " Use `BaseExperiment._transpile` instead.",
+                DeprecationWarning,
+            )
+            self._postprocess_transpiled_circuits(transpiled)  # pylint: disable=no-member
+
+        return transpiled
 
     @classmethod
     def _default_experiment_options(cls) -> Options:
@@ -481,10 +496,6 @@ class BaseExperiment(ABC, StoreInitArgs):
             DeprecationWarning,
         )
         self.analysis.options.update_options(**fields)
-
-    def _postprocess_transpiled_circuits(self, circuits: List[QuantumCircuit], **run_options):
-        """Additional post-processing of transpiled circuits before running on backend"""
-        pass
 
     def _metadata(self) -> Dict[str, any]:
         """Return experiment metadata for ExperimentData.
