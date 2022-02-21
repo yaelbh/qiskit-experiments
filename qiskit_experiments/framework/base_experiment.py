@@ -268,7 +268,6 @@ class BaseExperiment(ABC, StoreInitArgs):
 
         # Generate and transpile circuits
         circuits = experiment._transpiled_circuits()
-        experiment._postprocess_transpiled_circuits(circuits, **run_options)
 
         # Run jobs
         jobs = experiment._run_jobs(circuits, **run_opts)

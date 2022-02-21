@@ -222,8 +222,9 @@ class StandardRB(BaseExperiment):
                     return meta
         return None
 
-    def _postprocess_transpiled_circuits(self, circuits, **run_options):
+    def _transpiled_circuits(self):
         """Additional post-processing of transpiled circuits before running on backend"""
+        circuits = super()._transpiled_circuits()
         for c in circuits:
             meta = self._get_circuit_metadata(c)
             if meta is not None:
@@ -231,3 +232,4 @@ class StandardRB(BaseExperiment):
                 circuit_length = meta["xval"]
                 count_ops = [(key, (value, circuit_length)) for key, value in c_count_ops.items()]
                 meta.update({"count_ops": count_ops})
+        return circuits
