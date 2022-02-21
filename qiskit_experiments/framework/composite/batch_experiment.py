@@ -18,6 +18,7 @@ from collections import OrderedDict
 
 from qiskit import QuantumCircuit
 from qiskit.providers.backend import Backend
+from qiskit_experiments.exceptions import QiskitError
 from .composite_experiment import CompositeExperiment, BaseExperiment
 
 
@@ -60,51 +61,39 @@ class BatchExperiment(CompositeExperiment):
         super().__init__(experiments, qubits, backend=backend)
 
     def circuits(self):
-        return self._batch_circuits(to_transpile=False)
-
-    def _transpiled_circuits(self):
-        return self._batch_circuits(to_transpile=True)
-
-    def _batch_circuits(self, to_transpile=False):
         batch_circuits = []
 
         # Generate data for combination
-        for index, expr in enumerate(self._experiments):
-            if self.physical_qubits == expr.physical_qubits or to_transpile:
-                qubit_mapping = None
-            else:
-                qubit_mapping = [self._qubit_map[qubit] for qubit in expr.physical_qubits]
-
-            if isinstance(expr, BatchExperiment):
-                # Batch experiments don't contain their own native circuits.
-                # If to_trasnpile is True then the circuits will be transpiled at the non-batch
-                # experiments.
-                # Fetch the circuits from the sub-experiments.
-                expr_circuits = expr._batch_circuits(to_transpile)
-            elif to_transpile:
-                expr_circuits = expr._transpiled_circuits()
-            else:
-                expr_circuits = expr.circuits()
-
-            for circuit in expr_circuits:
-                # Update metadata
+        for index, sub_exp in enumerate(self._experiments):
+            for sub_circ in sub_exp._transpiled_circuits():
+                circuit = QuantumCircuit(
+                    self.num_qubits, sub_circ.num_clbits, name="batch_" + sub_circ.name
+                )
                 circuit.metadata = {
                     "experiment_type": self._type,
-                    "composite_metadata": [circuit.metadata],
+                    "composite_metadata": [sub_circ.metadata],
                     "composite_index": [index],
                 }
-                # Remap qubits if required
-                if qubit_mapping:
-                    circuit = self._remap_qubits(circuit, qubit_mapping)
+                for inst, qargs, cargs in sub_circ.data:
+                    try:
+                        mapped_qargs = [
+                            circuit.qubits[self._qubit_map[sub_circ.find_bit(i).index]]
+                            for i in qargs
+                        ]
+                    except KeyError as ex:
+                        # Instruction is outside physical qubits for the component
+                        # experiment.
+                        # This could legitimately happen if the subcircuit was
+                        # explicitly scheduled during transpilation which would
+                        # insert delays on all auxillary device qubits.
+                        # We skip delay instructions to allow for this.
+                        if inst.name == "delay":
+                            continue
+                        raise QiskitError(
+                            "Invalid physical qubits for component experiment"
+                        ) from ex
+                    mapped_cargs = [circuit.clbits[sub_circ.find_bit(i).index] for i in cargs]
+                    circuit._append(inst, mapped_qargs, mapped_cargs)
                 batch_circuits.append(circuit)
 
         return batch_circuits
-
-    def _remap_qubits(self, circuit, qubit_mapping):
-        """Remap qubits if physical qubit layout is different to batch layout"""
-        num_qubits = self.num_qubits
-        num_clbits = circuit.num_clbits
-        new_circuit = QuantumCircuit(num_qubits, num_clbits, name="batch_" + circuit.name)
-        new_circuit.metadata = circuit.metadata
-        new_circuit.append(circuit, qubit_mapping, list(range(num_clbits)))
-        return new_circuit
