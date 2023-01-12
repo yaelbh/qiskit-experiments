@@ -96,6 +96,7 @@ doesn't have a knob to control qubit frequency.
 
     ~stark.StarkRamseyXY
     ~stark.StarkRamseyFast
+    ~stark.StarkP1Spectroscopy
 
 .. _calibration:
 
@@ -173,7 +174,7 @@ from .characterization import (
 from .randomized_benchmarking import StandardRB, InterleavedRB
 from .tomography import StateTomography, ProcessTomography
 from .quantum_volume import QuantumVolume
-from .stark import StarkRamseyXY, StarkRamseyFast
+from .stark import StarkRamseyXY, StarkRamseyFast, StarkP1Spectroscopy
 
 # Experiment Sub-modules
 from . import calibration

@@ -25,6 +25,8 @@ Experiments
 
     StarkRamseyXY
     StarkRamseyFast
+    StarkP1Spectroscopy
+
 
 Analysis
 ========
@@ -33,9 +35,12 @@ Analysis
     :template: autosummary/analysis.rst
 
     StarkRamseyFastAnalysis
+    StarkP1SpectroscopyAnalysis
 
 """
 
+from .p1_spectroscopy import StarkP1Spectroscopy
+from .p1_spectroscopy_analysis import StarkP1SpectroscopyAnalysis
 from .ramsey_xy import StarkRamseyXY
 from .ramsey_fast import StarkRamseyFast
 from .ramsey_fast_analysis import StarkRamseyFastAnalysis
