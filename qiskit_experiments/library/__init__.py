@@ -95,6 +95,7 @@ doesn't have a knob to control qubit frequency.
     :template: autosummary/experiment.rst
 
     ~stark.StarkRamseyXY
+    ~stark.StarkRamseyFast
 
 .. _calibration:
 
@@ -172,7 +173,7 @@ from .characterization import (
 from .randomized_benchmarking import StandardRB, InterleavedRB
 from .tomography import StateTomography, ProcessTomography
 from .quantum_volume import QuantumVolume
-from .stark import StarkRamseyXY
+from .stark import StarkRamseyXY, StarkRamseyFast
 
 # Experiment Sub-modules
 from . import calibration

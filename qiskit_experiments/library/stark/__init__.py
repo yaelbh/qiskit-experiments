@@ -24,7 +24,18 @@ Experiments
     :template: autosummary/experiment.rst
 
     StarkRamseyXY
+    StarkRamseyFast
+
+Analysis
+========
+.. autosummary::
+    :toctree: ../stubs/
+    :template: autosummary/analysis.rst
+
+    StarkRamseyFastAnalysis
 
 """
 
 from .ramsey_xy import StarkRamseyXY
+from .ramsey_fast import StarkRamseyFast
+from .ramsey_fast_analysis import StarkRamseyFastAnalysis
