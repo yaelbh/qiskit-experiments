@@ -61,13 +61,13 @@ class StarkP1Spectroscopy(BaseExperiment):
 
     def __init__(
         self,
-        qubit: int,
+        physical_qubits,
         backend: Optional[Backend] = None,
         **experiment_options,
     ):
         self._timing = None
 
-        super().__init__(qubits=[qubit], analysis=StarkP1SpectroscopyAnalysis(), backend=backend)
+        super().__init__(qubits=physical_qubits, analysis=StarkP1SpectroscopyAnalysis(), backend=backend)
         self.set_experiment_options(**experiment_options)
 
     @classmethod
@@ -140,31 +140,23 @@ class StarkP1Spectroscopy(BaseExperiment):
             return np.linspace(opt.min_freq, opt.max_freq, opt.num_freqs)
         return opt.frequencies
 
-    def parametrized_circuits(self) -> circuit.QuantumCircuit:
+    def calc_circ(self, amp) -> circuit.QuantumCircuit:
         """Create circuit with parameters for P1 experiment with Stark tone.
 
         Returns:
             Quantum template circuit of Stark T1 at fixed delay.
         """
         opt = self.experiment_options  # alias
-        param = circuit.Parameter("stark_amp")
-        sym_param = param._symbol_expr
 
         # Pulse gates
-        stark = circuit.Gate("Stark", 1, [param])
+        stark = circuit.Gate("Stark", 1, [])
 
         # Note that Stark tone yields negative (positive) frequency shift
         # when the Stark tone frequency is higher (lower) than qubit f01 frequency.
         # This choice gives positive frequency shift with positive Stark amplitude.
         qubit_f01 = self._backend_data.drive_freqs[self.physical_qubits[0]]
-        neg_sign_of_amp = circuit.ParameterExpression(
-            symbol_map={param: sym_param},
-            expr=-sym.sign(sym_param),
-        )
-        abs_of_amp = circuit.ParameterExpression(
-            symbol_map={param: sym_param},
-            expr=sym.Abs(sym_param),
-        )
+        neg_sign_of_amp = -np.sign(amp)
+        abs_of_amp = np.abs(amp)
         stark_freq = qubit_f01 + neg_sign_of_amp * opt.stark_freq_offset
         stark_channel = opt.stark_channel or pulse.DriveChannel(self.physical_qubits[0])
         sigma_dt = opt.stark_sigma / self._backend_data.dt
@@ -251,8 +243,6 @@ class StarkP1Spectroscopy(BaseExperiment):
             A list of circuits with a variable delay.
         """
         opt = self.experiment_options  # alias
-        t1_circ = self.parametrized_circuits()
-        param = next(iter(t1_circ.parameters))
 
         circs = []
         for freq in self.frequencies():
@@ -266,7 +256,7 @@ class StarkP1Spectroscopy(BaseExperiment):
                 t1_assigned.delay(self._timing.round_delay(time=opt.t1_delay), 0)
                 t1_assigned.measure(0, 0)
             else:
-                t1_assigned = t1_circ.assign_parameters({param: amp}, inplace=False)
+                t1_assigned = self.calc_circ(amp)
             t1_assigned.metadata = {
                 "xval": freq,
                 "amp": amp,
