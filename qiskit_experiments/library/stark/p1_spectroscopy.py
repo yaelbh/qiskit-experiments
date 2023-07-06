@@ -67,7 +67,9 @@ class StarkP1Spectroscopy(BaseExperiment):
     ):
         self._timing = None
 
-        super().__init__(qubits=physical_qubits, analysis=StarkP1SpectroscopyAnalysis(), backend=backend)
+        super().__init__(
+            qubits=physical_qubits, analysis=StarkP1SpectroscopyAnalysis(), backend=backend
+        )
         self.set_experiment_options(**experiment_options)
 
     @classmethod
